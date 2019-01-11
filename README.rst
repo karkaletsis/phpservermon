@@ -17,7 +17,7 @@ Features:
 ---------
 
 * Monitor services and websites (see below).
-* Email, SMS, Pushover, Telegram notifications.
+* Email, SMS, Pushover, Telegram and Slack notifications.
 * View history graphs of uptime and latency.
 * User authentication with 2 levels (administrator and regular user).
 * Logs of connection errors, outgoing emails and text messages.
