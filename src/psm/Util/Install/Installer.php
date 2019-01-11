@@ -573,4 +573,19 @@ class Installer {
 		$this->execSQL($queries);
 		$this->log('Combined notifications enabled. Check out the config page for more info.');
 	}
+
+    /**
+     * Upgrade for v3.5.0 release
+     */
+    protected function upgrade350() {
+        $queries = array();
+        /**
+         * Redirect_check is first set to default ok.
+         * If you have a lot of server that are redirecting,
+         * this will make sure you're servers stay online.
+         */
+        $queries[] = "ALTER TABLE `".PSM_DB_PREFIX."servers` ADD  `slack` ENUM( 'yes','no' ) NOT NULL DEFAULT 'yes' AFTER  `pushover`;";
+        $this->execSQL($queries);
+        $this->log('Combined notifications enabled. Check out the config page for more info.');
+    }
 }

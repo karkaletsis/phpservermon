@@ -66,6 +66,12 @@ class StatusNotifier {
 	 */
 	protected $send_telegram = false;
 
+    /**
+     * Send slack?
+     * @var boolean $send_slack
+     */
+    protected $send_slack = false;
+
 	/**
 	 * Save log records?
 	 * @var boolean $save_log
@@ -120,6 +126,7 @@ class StatusNotifier {
 		$this->send_sms = psm_get_conf('sms_status');
 		$this->send_pushover = psm_get_conf('pushover_status');
 		$this->send_telegram = psm_get_conf('telegram_status');
+        $this->send_slack = psm_get_conf('slack_status');
 		$this->save_logs = psm_get_conf('log_status');
 		$this->combine = psm_get_conf('combine_notifications');
 	}
@@ -139,6 +146,7 @@ class StatusNotifier {
 			!$this->send_sms &&
 			!$this->send_pushover &&
 			!$this->send_telegram &&
+            !$this->send_slack &&
 			!$this->save_logs
 		) {
 			// seems like we have nothing to do. skip the rest
@@ -155,7 +163,7 @@ class StatusNotifier {
 		$this->server = $this->db->selectRow(PSM_DB_PREFIX.'servers', array(
 			'server_id' => $server_id,
 		), array(
-			'server_id', 'ip', 'port', 'label', 'error', 'email', 'sms', 'pushover', 'telegram', 'last_online', 'last_offline', 'last_offline_duration',
+			'server_id', 'ip', 'port', 'label', 'error', 'email', 'sms', 'pushover', 'telegram', 'last_online', 'last_offline', 'last_offline_duration','slack'
 		));
 		if (empty($this->server)) {
 			return false;
@@ -232,6 +240,12 @@ class StatusNotifier {
 			$this->combine ? $this->setCombi('telegram') : $this->notifyByTelegram($users);
 		}
 
+        // check if slack is enabled for this server
+        if ($this->send_slack && $this->server['slack'] == 'yes') {
+            $this->notifyBySlack();
+            //$this->combine ? $this->setCombiSlack('slack') : $this->notifyBySlack();
+        }
+
 		return $notify;
 	}
 
@@ -242,9 +256,24 @@ class StatusNotifier {
      * @param array $users Users
      * @return void
      */
+    public function setCombiSlack($method) {
+        error_log("METHOD: " . $method);
+        $status = $this->status_new ? 'on' : 'off';
+        $this->combiNotification['notifications'][$method][$status][$this->server_id] =
+            psm_parse_msg($this->status_new, $method.'_message', $this->server, true);
+        return;
+    }
+
+    /**
+     * This functions collects all of the notifications
+     *
+     * @param string $method notification method
+     * @param array $users Users
+     * @return void
+     */
 	public function setCombi($method, $users = array()) {
 		$status = $this->status_new ? 'on' : 'off';
-
+        error_log("METHOD: " + $method);
 		if ($method == 'init' && !empty($users)){
 			foreach($users as $user) {
                 if(!isset($this->combiNotification['count'][$user['user_id']])){
@@ -519,6 +548,26 @@ class StatusNotifier {
             $telegram->setUser($user['telegram_id']);
             $telegram->send();
         }
+    }
+
+    /**
+     * This functions performs the slack notifications
+     *
+     * @param \PDOStatement $users
+     * @param array $combi contains message and subject (optional)
+     * @return void
+     */
+    protected function notifyBySlack($combi = array()) {
+        // Slack
+        $message = psm_parse_msg($this->status_new, 'telegram_message', $this->server);
+        $slack = psm_build_slack();
+        $slack->setMessage($message);
+
+        // Log
+        if (psm_get_conf('log_slack')) {
+            psm_add_log($this->server_id, 'slack', $message);
+        }
+        $slack->send();
     }
 
 	/**

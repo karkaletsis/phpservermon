@@ -43,8 +43,34 @@ class Clickatell extends Core {
 	 *
 	 * @return bool|string
 	 */
-	
-	public function sendSMS($message) {
+
+    public function sendSMS($message) {
+        $success = 1;
+        $error = '';
+        foreach ($this->recipients as $recipient) {
+            $ch = curl_init();
+            $smsurl="https://api.clickatell.com/http/sendmsg?api_id=3153185&user=".$this->username."&password=".$this->password . "&from=GNOMON&to=".$recipient."&text=".urlencode($message);
+            curl_setopt($ch, CURLOPT_URL, $smsurl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            $headers = array();
+            $headers[] = "Content-Type: application/x-www-form-urlencoded";
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            // Check on error
+            if (strpos($result, ",\"errorCode\":null,\"error\":null,\"errorDescription\":null") === False) {
+                $error = $result . " " . $smsurl;
+                $success = 0;
+            }
+        }
+        if ($success) {
+            return 1;
+        }
+        return $error;
+    }
+
+	public function sendSMSOld($message) {
 		$success = 1;
 		$error = '';
 		foreach ($this->recipients as $recipient) {

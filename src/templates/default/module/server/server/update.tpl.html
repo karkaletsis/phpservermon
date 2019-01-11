@@ -213,6 +213,17 @@
 				</select>
 			</div>
 		</div>
+		<div class="control-group {{ control_class_slack }}">
+			<label class="control-label" for="slack">{{ label_slack }}
+				{% if warning_slack %} <p class="help-inline"><i class="icon-warning-sign" data-toggle="tooltip" title="{{ label_warning_slack }}"></i></p> {% endif %}
+			</label>
+			<div class="controls">
+				<select id="slack" name="slack">
+					<option value="yes" {{ edit_slack_selected_yes|raw }}>{{ label_yes }}</option>
+					<option value="no" {{ edit_slack_selected_no|raw }}>{{ label_no }}</option>
+				</select>
+			</div>
+		</div>
 	</fieldset>
 
 	<fieldset>

@@ -330,7 +330,7 @@ function psm_parse_msg($status, $type, $vars, $combi = false) {
 	if (!$message) {
 		return $message;
 	}
-	$vars['date'] = date('Y-m-d H:i:s');
+	$vars['date'] = date('d-m-Y H:i:s');
 
 	foreach ($vars as $k => $v) {
 		$message = str_replace('%'.strtoupper($k).'%', $v, $message);
@@ -537,6 +537,12 @@ function psm_build_pushover() {
 	return $pushover;
 }
 
+function psm_build_slack() {
+    $slack = new \Slack();
+    $slack->setToken(psm_get_conf('slack_api_token'));
+    return $slack;
+}
+
 /**
  *
  * @return \Telegram
@@ -544,7 +550,6 @@ function psm_build_pushover() {
 function psm_build_telegram() {
 	$telegram = new \Telegram();
 	$telegram->setToken(psm_get_conf('telegram_api_token'));
-
 	return $telegram;
 }
 
@@ -860,4 +865,51 @@ class telegram
 		}
 		return $this->sendurl();
 	}
+}
+
+class slack
+{
+    private $_token;
+    private $_message;
+    private $_url;
+
+    public function setToken($token) {
+        $this->_token = (string) $token;
+    }
+
+    public function setMessage($message) {
+        $message = str_replace("<ul>","",$message);
+        $message = str_replace("</ul>","\n",$message);
+        $message = str_replace("<li>","- ",$message);
+        $message = str_replace("</li>","\n",$message);
+        $message = str_replace("<br>","\n",$message);
+        $message = str_replace("<br/>","\n",$message);
+        $this->_message = (string) $message;
+    }
+    public function sendurl($message) {
+        $con = curl_init($this->_url);
+        curl_setopt($con, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($con, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($con, CURLOPT_TIMEOUT, 60);
+        curl_setopt($con, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Connection: Keep-Alive'
+        ));
+        $payload = $message;
+        curl_setopt( $con, CURLOPT_POSTFIELDS, $payload );
+        $response = curl_exec($con);
+        return $response;
+    }
+
+    public function send() {
+        $myObj->text = $this->_message;
+        $payload = json_encode($myObj);
+        if (!Empty($this->_message)) {
+//            $json = "{\"text\":'" . ($this->_message) . "'}";
+//            error_log("JSON: " . $json);
+            $this->_url = $this->_token;
+        }
+        return $this->sendurl($payload);
+    }
+
 }
